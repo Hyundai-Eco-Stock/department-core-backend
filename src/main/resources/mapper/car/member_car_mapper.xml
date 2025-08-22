@@ -3,7 +3,7 @@
     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="org.phoenix.planet.mapper.MemberCarMapper">
+<mapper namespace="org.phoenix.planet.departmentcorebackend.mapper.MemberCarMapper">
     
     <resultMap id="MemberCarResultMap" type="org.phoenix.planet.departmentcorebackend.dto.car.response.MemberCarResponse">
         <id column="id" property="memberCarId"/>

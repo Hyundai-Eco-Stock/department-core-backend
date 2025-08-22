@@ -2,6 +2,7 @@ package org.phoenix.planet.departmentcorebackend.controller;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.phoenix.planet.departmentcorebackend.dto.car_access.request.CarEnterRequest;
 import org.phoenix.planet.departmentcorebackend.dto.car_access.request.CarExitRequest;
 import org.phoenix.planet.departmentcorebackend.dto.car_access.response.CarAccessHistoryResponse;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequestMapping("/cars/access")
 @RequiredArgsConstructor
@@ -23,7 +25,7 @@ public class CarAccessController {
     @GetMapping
     public ResponseEntity<List<CarAccessHistoryResponse>> carHistory(
     ) {
-        // 출차 처리
+        log.info("차량 입출차 기록 조회");
         List<CarAccessHistoryResponse> histories = carAccessService.searchCarAccessHistories();
         return ResponseEntity.ok(histories);
     }
@@ -33,6 +35,7 @@ public class CarAccessController {
         @RequestBody CarEnterRequest carEnterRequest
     ) {
         // 입차 처리
+        log.info("차량 입차: {}", carEnterRequest.carNumber());
         carAccessService.processEnterCar(carEnterRequest);
         return ResponseEntity.ok().build();
     }
@@ -42,6 +45,7 @@ public class CarAccessController {
         @RequestBody CarExitRequest carExitRequest
     ) {
         // 출차 처리
+        log.info("차량 출차: {}", carExitRequest.carNumber());
         carAccessService.processExitCar(carExitRequest);
         return ResponseEntity.ok().build();
     }

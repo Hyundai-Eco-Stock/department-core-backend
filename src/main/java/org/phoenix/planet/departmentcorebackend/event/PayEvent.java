@@ -6,7 +6,7 @@ import org.phoenix.planet.departmentcorebackend.dto.offline.request.OfflinePaylo
 import org.phoenix.planet.departmentcorebackend.dto.offline.request.OfflinePayload.Summary;
 
 @Builder
-public record KafkaOfflinePayInfo(
+public record PayEvent(
     long offlinePayHistoryId,
     int posId,
     long dailySeq,

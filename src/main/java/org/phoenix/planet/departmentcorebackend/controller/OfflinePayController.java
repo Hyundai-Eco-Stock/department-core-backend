@@ -2,7 +2,7 @@ package org.phoenix.planet.departmentcorebackend.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.phoenix.planet.departmentcorebackend.dto.offline.request.OfflinePayload;
-import org.phoenix.planet.departmentcorebackend.service.receipt.OfflinePayService;
+import org.phoenix.planet.departmentcorebackend.service.offline.OfflinePayService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

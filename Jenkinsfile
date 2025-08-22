@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        SERVICE_NAME = 'planet-backend'
+        SERVICE_NAME = 'planet-department-core-backend'
         HARBOR_URL = 'https://localhost:8443'
         HARBOR_REPO = 'localhost:8443/planet'
     }

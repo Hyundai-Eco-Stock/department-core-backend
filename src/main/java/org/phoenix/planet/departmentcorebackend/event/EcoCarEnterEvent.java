@@ -1,4 +1,4 @@
-package org.phoenix.planet.departmentcorebackend.dto.car_access.raw;
+package org.phoenix.planet.departmentcorebackend.event;
 
 import lombok.Builder;
 

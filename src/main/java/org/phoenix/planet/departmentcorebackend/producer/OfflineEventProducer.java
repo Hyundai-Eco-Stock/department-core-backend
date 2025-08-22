@@ -3,8 +3,8 @@ package org.phoenix.planet.departmentcorebackend.producer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.phoenix.planet.departmentcorebackend.constant.KafkaTopic;
-import org.phoenix.planet.departmentcorebackend.dto.car_access.raw.EcoCarEnterEvent;
-import org.phoenix.planet.departmentcorebackend.dto.offline.raw.KafkaOfflinePayInfo;
+import org.phoenix.planet.departmentcorebackend.event.EcoCarEnterEvent;
+import org.phoenix.planet.departmentcorebackend.event.PayEvent;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -15,9 +15,9 @@ public class OfflineEventProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public void publishOfflinePayEvent(KafkaOfflinePayInfo kafkaOfflinePayInfo) {
+    public void publishOfflinePayEvent(PayEvent payEvent) {
 
-        publish(KafkaTopic.OFFLINE_PAY_DETECTED, kafkaOfflinePayInfo);
+        publish(KafkaTopic.OFFLINE_PAY_DETECTED, payEvent);
     }
 
     public void publishEcoCarEnterEvent(EcoCarEnterEvent ecoCarEnterEvent) {

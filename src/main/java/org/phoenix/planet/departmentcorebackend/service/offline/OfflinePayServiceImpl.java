@@ -6,12 +6,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.phoenix.planet.departmentcorebackend.dto.offline.raw.KafkaOfflinePayInfo;
 import org.phoenix.planet.departmentcorebackend.dto.offline.raw.OfflinePayProductSaveRequest;
 import org.phoenix.planet.departmentcorebackend.dto.offline.raw.OfflinePaySaveRequest;
 import org.phoenix.planet.departmentcorebackend.dto.offline.raw.OfflineProduct;
 import org.phoenix.planet.departmentcorebackend.dto.offline.request.OfflinePayload;
 import org.phoenix.planet.departmentcorebackend.dto.offline.request.OfflinePayload.Item;
+import org.phoenix.planet.departmentcorebackend.event.PayEvent;
 import org.phoenix.planet.departmentcorebackend.producer.OfflineEventProducer;
 import org.phoenix.planet.departmentcorebackend.util.receipt.ReceiptNoGeneratorUtil;
 import org.springframework.stereotype.Service;
@@ -36,7 +36,7 @@ public class OfflinePayServiceImpl implements OfflinePayService {
     @Override
     @Transactional
     public void save(OfflinePayload payload) {
-        // 오프라인 결제 정보 저장
+        // 1. 오프라인 결제 정보 저장
         OfflinePaySaveRequest offlinePaySaveRequest = OfflinePaySaveRequest.builder()
             .shopId(payload.shopId())
             .cardCompanyId(payload.cardCompanyId())
@@ -53,15 +53,17 @@ public class OfflinePayServiceImpl implements OfflinePayService {
             .build();
         long offlinePayHistoryId = offlinePayHistoryService.save(offlinePaySaveRequest);
 
-        // 결제 상품 정보들 저장
+        // 2. 결제 상품 정보들 저장
         List<Long> productIds = payload.items().stream()
             .map(OfflinePayload.Item::productId)
             .toList();
 
+        // 결제 상품 정보 가져오기
         Map<Long, OfflineProduct> productMap = offlineProductService.searchByIds(productIds)
             .stream()
             .collect(Collectors.toMap(OfflineProduct::offlineProductId, p -> p));
 
+        // 결제 상품 갯수와 함께 저장
         payload.items()
             .forEach(item -> {
                 OfflineProduct offlineProduct = productMap.get(item.productId());
@@ -76,8 +78,9 @@ public class OfflinePayServiceImpl implements OfflinePayService {
                         .build());
             });
 
+        // 이벤트 생성
         offlineEventProducer.publishOfflinePayEvent(
-            KafkaOfflinePayInfo.builder()
+            PayEvent.builder()
                 .offlinePayHistoryId(offlinePayHistoryId)
                 .posId(payload.posId())
                 .dailySeq(payload.dailySeq())

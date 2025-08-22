@@ -78,19 +78,31 @@ public class OfflinePayServiceImpl implements OfflinePayService {
                         .build());
             });
 
+        String shopType = offlineShopService.searchTypeById(payload.shopId());
+        boolean hasTumblerDiscountProduct = productMap.values()
+            .stream()
+            .anyMatch(p -> p.name() != null && p.name().contains("텀블러 할인"));
+
+        boolean hasPaperBagProduct = productMap.values()
+            .stream()
+            .anyMatch(p -> p.name() != null && p.name().contains("종이백"));
+
+        String eventName = null;
+        if ("CAFE".equals(shopType) && hasTumblerDiscountProduct) {
+            eventName = "TUMBLER_DISCOUNT";
+        } else if ("FOOD_MALL".equals(shopType) && !hasPaperBagProduct) {
+            eventName = "PAPER_BAG_NO_USE";
+        }
+
         // 이벤트 생성
-        offlineEventProducer.publishOfflinePayEvent(
-            PayEvent.builder()
-                .offlinePayHistoryId(offlinePayHistoryId)
-                .posId(payload.posId())
-                .dailySeq(payload.dailySeq())
-                .shopId(payload.shopId())
-                .cardCompanyId(payload.cardCompanyId())
-                .cardNumber(payload.cardNumber())
-                .last4(payload.last4())
-                .items(payload.items())
-                .summary(payload.summary())
-                .build());
+        if (eventName != null) {
+            offlineEventProducer.publishOfflinePayEvent(
+                PayEvent.builder()
+                    .eventName(eventName)
+                    .cardCompanyId(payload.cardCompanyId())
+                    .cardNumber(payload.cardNumber())
+                    .build());
+        }
     }
 
 }

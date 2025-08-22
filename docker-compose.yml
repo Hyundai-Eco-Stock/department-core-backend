@@ -1,0 +1,19 @@
+services:
+  planet-department-core-backend:
+    image: harbor.jaeyoung2.duckdns.org/planet/planet-department-core-backend:latest
+    container_name: planet-department-core-backend
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    env_file:
+      - ../.env.planet-backend
+    expose:
+      - "8081"
+    networks:
+      - planet_network
+    cpus: 1
+    mem_limit: 2g
+networks:
+  planet_network:
+    external: true
+  harbor_harbor:
+    external: true

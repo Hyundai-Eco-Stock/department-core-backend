@@ -1,0 +1,61 @@
+server:
+  port: 8081
+
+fcm:
+  credentials:
+    file: ${FIREBASE_CREDENTIALS_PATH}
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST}:${KAFKA_PORT}
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 1
+
+    consumer:
+      group-id: planet-app
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+    listener:
+      ack-mode: RECORD
+      concurrency: 1
+
+mybatis:
+  mapper-locations: classpath:/mapper/**/*.xml
+  type-aliases-package: org.phoenix.planet
+  configuration:
+    map-underscore-to-camel-case: true
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+
+    region:
+      static: ap-northeast-2
+
+s3:
+  upload-path:
+    member-profile: release/member-profile/
+    product-img: release/product-img/
+  upload-bucket:
+    name: ${S3_BUCKET_NAME}
+
+cloudfront:
+  distribution-domain: ${CLOUDFRONT_DISTRIBUTION_DOMAIN}
+  key-pair-id: ${CLOUDFRONT_KEY_PAIR_ID}
+  private-key-path: ${CLOUDFRONT_PRIVATE_KEY_PATH}

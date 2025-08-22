@@ -1,0 +1,15 @@
+package org.phoenix.planet.departmentcorebackend.dto.car.response;
+
+
+import org.phoenix.planet.departmentcorebackend.constant.CarEcoType;
+
+public record MemberCarResponse(
+    long memberCarId,
+    long memberId,
+    String carNumber,
+    CarEcoType carEcoType,
+    String createdAt, // YYYY-MM-DD 형식
+    String updatedAt  // YYYY-MM-DD 형식
+) {
+
+}

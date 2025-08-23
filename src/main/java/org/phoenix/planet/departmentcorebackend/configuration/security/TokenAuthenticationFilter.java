@@ -45,13 +45,9 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
         return path.equals("/")
             || path.equals("/error")
             || path.equals("/favicon.ico")
-            || path.startsWith("/h2-console")
             || path.startsWith("/swagger-ui")
             || path.startsWith("/v3/api-docs")
-            || path.equals("/auth/access-token/regenerate")
-            || path.equals("/auth/login")
-            || path.equals("/health")
-            || path.startsWith("/oauth2/authorization");
+            || path.equals("/health");
     }
 
     @Override

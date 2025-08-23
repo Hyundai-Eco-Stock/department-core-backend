@@ -69,14 +69,10 @@ public class SecurityConfig {
                     .requestMatchers(
                         new AntPathRequestMatcher("/error"),
                         new AntPathRequestMatcher("/favicon.ico"),
-                        new AntPathRequestMatcher("/h2-console/**"),
                         new AntPathRequestMatcher("/swagger-ui/**"),
                         new AntPathRequestMatcher("/v3/api-docs/**"),
                         new AntPathRequestMatcher("/health"),
-                        new AntPathRequestMatcher("/"),
-                        new AntPathRequestMatcher("/auth/success"),
-                        new AntPathRequestMatcher("/auth/access-token/regenerate"),
-                        new AntPathRequestMatcher("/auth/login")
+                        new AntPathRequestMatcher("/")
                     ).permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .anyRequest().authenticated()

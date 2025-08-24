@@ -1,29 +1,33 @@
 package org.phoenix.planet.departmentcorebackend.dto.offline.request;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import java.util.List;
 
 public record OfflinePayload(
-    int posId,
-    long dailySeq,
-    long shopId,
-    long cardCompanyId,
-    String cardNumber,
-    int last4,
-    List<Item> items,
-    Summary summary
+    @NotNull @Positive Integer posId,
+    @NotNull @Positive Long dailySeq,
+    @NotNull @Positive Long shopId,
+    @NotNull @Positive Long cardCompanyId,
+    @NotBlank String cardNumber,
+    @NotNull @Positive Integer last4,
+    @NotEmpty List<Item> items,
+    @NotNull Summary summary
 ) {
 
     public record Item(
-        long productId,
-        int amount
+        @NotNull @Positive Long productId,
+        @NotNull @Positive Integer amount
     ) {
 
     }
 
     public record Summary(
-        Integer subtotal,
-        Integer discounts,
-        Integer total
+        @NotNull @Positive Integer subtotal,
+        @NotNull Integer discounts,
+        @NotNull @Positive Integer total
     ) {
 
     }

@@ -1,5 +1,6 @@
 package org.phoenix.planet.departmentcorebackend.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.phoenix.planet.departmentcorebackend.dto.offline.request.OfflinePayload;
 import org.phoenix.planet.departmentcorebackend.service.offline.OfflinePayService;
@@ -18,7 +19,7 @@ public class OfflinePayController {
 
     @PostMapping
     public ResponseEntity<?> createOfflinePay(
-        @RequestBody OfflinePayload offlinePayload
+        @RequestBody @Valid OfflinePayload offlinePayload
     ) {
 
         offlinePayService.save(offlinePayload);

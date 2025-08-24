@@ -1,5 +1,6 @@
 package org.phoenix.planet.departmentcorebackend.controller;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ public class CarAccessController {
     @GetMapping
     public ResponseEntity<List<CarAccessHistoryResponse>> carHistory(
     ) {
+
         log.info("차량 입출차 기록 조회");
         List<CarAccessHistoryResponse> histories = carAccessService.searchCarAccessHistories();
         return ResponseEntity.ok(histories);
@@ -32,7 +34,7 @@ public class CarAccessController {
 
     @PostMapping("/enter")
     public ResponseEntity<Void> carEnter(
-        @RequestBody CarEnterRequest carEnterRequest
+        @RequestBody @Valid CarEnterRequest carEnterRequest
     ) {
         // 입차 처리
         log.info("차량 입차: {}", carEnterRequest.carNumber());
@@ -42,7 +44,7 @@ public class CarAccessController {
 
     @PostMapping("/exit")
     public ResponseEntity<Void> carExit(
-        @RequestBody CarExitRequest carExitRequest
+        @RequestBody @Valid CarExitRequest carExitRequest
     ) {
         // 출차 처리
         log.info("차량 출차: {}", carExitRequest.carNumber());

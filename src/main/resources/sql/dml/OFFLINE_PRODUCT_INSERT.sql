@@ -1,3 +1,4 @@
+commit;
 --------------------------------------- 스타벅스 ---------------------------------------
 -- 압구정 본점 스타벅스 (101)
 INSERT INTO offline_product (offline_product_id, offline_shop_id, name, price)

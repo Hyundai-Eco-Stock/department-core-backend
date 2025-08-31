@@ -58,6 +58,7 @@ CREATE SEQUENCE seq_member_card START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
 -------------------------------------------------------
 -- 오프라인 결제 내역 (결제 단위, 1건당 1 row)
 -------------------------------------------------------
+DROP TABLE offline_pay_history;
 CREATE TABLE offline_pay_history
 (
     offline_pay_history_id NUMBER PRIMARY KEY,
@@ -85,6 +86,7 @@ CREATE SEQUENCE seq_offline_pay_history
 -------------------------------------------------------
 -- 오프라인 결제 상품 (결제된 상품별 라인 아이템)
 -------------------------------------------------------
+DROP TABLE offline_pay_product;
 CREATE TABLE offline_pay_product
 (
     offline_pay_product_id NUMBER PRIMARY KEY,
@@ -95,7 +97,7 @@ CREATE TABLE offline_pay_product
     amount                 NUMBER               NOT NULL, -- 수량
     created_at             DATE DEFAULT SYSDATE NOT NULL,
     updated_at             DATE,
-    CONSTRAINT fk_offline_pay_product_history
+    CONSTRAINT fk_offline_pay_history
         FOREIGN KEY (offline_pay_history_id) REFERENCES offline_pay_history (offline_pay_history_id),
     CONSTRAINT fk_offline_pay_product
         FOREIGN KEY (product_id) REFERENCES offline_product (offline_product_id)

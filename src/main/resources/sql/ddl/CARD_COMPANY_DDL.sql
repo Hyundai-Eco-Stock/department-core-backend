@@ -1,0 +1,6 @@
+-- 카드 회사 테이블
+CREATE TABLE CARD_COMPANY
+(
+    CARD_COMPANY_ID NUMBER        NOT NULL,
+    name            VARCHAR2(255) NOT NULL
+);

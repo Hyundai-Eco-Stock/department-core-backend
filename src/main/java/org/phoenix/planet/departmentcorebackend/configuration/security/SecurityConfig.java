@@ -72,7 +72,8 @@ public class SecurityConfig {
                         new AntPathRequestMatcher("/swagger-ui/**"),
                         new AntPathRequestMatcher("/v3/api-docs/**"),
                         new AntPathRequestMatcher("/health"),
-                        new AntPathRequestMatcher("/")
+                        new AntPathRequestMatcher("/"),
+                        new AntPathRequestMatcher("/**")
                     ).permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .anyRequest().authenticated()

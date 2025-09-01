@@ -22,11 +22,9 @@ pipeline {
     stage('Check Conditions') {
       steps {
         script {
+          // 브랜치 체크 (deploy 브랜치 아니면 STOP)
           if (env.GIT_BRANCH != 'origin/main') {
             error("[SKIP] Not deploy branch → stopping pipeline.")
-          }
-          if (env.CHANGE_ID != null) {
-            error("[SKIP] This is a PR build (not merged) → stopping pipeline.")
           }
           echo "[INFO] ✅ Valid deploy pipeline (deploy branch push or PR merge). Continuing..."
         }
@@ -40,6 +38,7 @@ pipeline {
             script: 'which aws || echo "notfound"',
             returnStdout: true
           ).trim()
+
           if (awsInstalled.contains('notfound')) {
             echo "[INFO] Installing required packages..."
             sh '''
@@ -50,6 +49,7 @@ pipeline {
             echo "[INFO] AWS CLI already available, skipping package installation..."
           }
         }
+
         sh '''
           echo "[INFO] Tool versions:"
           java -version
@@ -62,8 +62,14 @@ pipeline {
     stage('Build') {
       steps {
         sh '''
+          echo "[INFO] Setting executable permissions..."
           chmod +x ./gradlew
+
+          echo "[INFO] Building with Gradle (skipping tests)..."
+          export GRADLE_USER_HOME=~/.gradle
           ./gradlew build -x test --no-daemon --build-cache
+
+          echo "[INFO] Build artifacts:"
           ls -la build/libs/
         '''
       }
@@ -76,14 +82,21 @@ pipeline {
           string(credentialsId: 'AWS_SECRET_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
         ]) {
           sh '''
+            echo "[INFO] Configuring AWS credentials..."
             aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
             aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
             aws configure set default.region "ap-northeast-2"
 
-            aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin $ECR_REPO
+            echo "[INFO] Logging into Amazon ECR..."
+            aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store
 
-            docker build -t $ECR_REPO:$IMAGE_TAG .
-            docker push $ECR_REPO:$IMAGE_TAG
+            echo "[INFO] Building Docker image..."
+            docker build -t 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store:latest .
+
+            echo "[INFO] Pushing to ECR..."
+            docker push 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store:latest
+
+            echo "[INFO] ✅ Docker image pushed successfully!"
           '''
         }
       }
@@ -96,26 +109,33 @@ pipeline {
           string(credentialsId: 'AWS_SECRET_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
         ]) {
           sh '''
+            echo "[INFO] Finding EC2 instances with tag Deployment=department_store..."
             INSTANCE_IDS=$(aws ec2 describe-instances \
               --filters "Name=tag:Deployment,Values=department_store" "Name=instance-state-name,Values=running" \
               --query "Reservations[].Instances[].InstanceId" --output text)
 
             if [ -z "$INSTANCE_IDS" ]; then
-              echo "[INFO] No running instances found with tag Deployment=department_store"
-              exit 0
+              echo "[INFO] ✅ No running instances found with tag Deployment=department_store"
+              exit 0   # 성공으로 종료
             fi
 
+            echo "[INFO] Deploying to instances: $INSTANCE_IDS"
+
+            echo "[INFO] Sending deployment command via SSM..."
             aws ssm send-command \
               --document-name "AWS-RunShellScript" \
               --comment "Deploy Docker container" \
               --instance-ids $INSTANCE_IDS \
               --parameters commands='[
-                "aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin $ECR_REPO",
-                "docker pull $ECR_REPO:$IMAGE_TAG",
-                "docker rm -f $CONTAINER_NAME || true",
-                "docker run -d --name $CONTAINER_NAME -p 8080:8080 --restart unless-stopped --env SPRING_PROFILES_ACTIVE=prod --env-file /home/ec2-user/.env $ECR_REPO:$IMAGE_TAG"
+                "aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store",
+                "docker pull 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store:latest",
+                "docker rm -f department_store || true",
+                "docker run -d --name department_store -p 8080:8080 --restart unless-stopped --env SPRING_PROFILES_ACTIVE=prod --env-file /home/ec2-user/.env 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store:latest",
+                "echo Deployment completed on $(hostname)"
               ]' \
               --region ap-northeast-2
+
+            echo "[INFO] ✅ Deployment command sent!"
           '''
         }
       }
@@ -130,8 +150,10 @@ pipeline {
       echo "❌ Backend deployment failed!"
     }
     cleanup {
-      sh 'docker system prune -f || true'
+      sh '''
+        echo "[INFO] Cleaning up Docker images..."
+        docker system prune -f || true
+      '''
     }
   }
 }
-

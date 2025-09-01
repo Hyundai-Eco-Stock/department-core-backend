@@ -20,7 +20,9 @@ public class CorsConfig {
             "http://localhost:5173",
             "http://127.0.0.1:5173",
             "https://planet-frontend.jaeyoung.store",
-            "https://greendealshop.store"
+            "https://greendealshop.store",
+            "http://3.35.85.152:8081",
+            "https://admin.greendealshop.store"
         ));
 //        config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(List.of(

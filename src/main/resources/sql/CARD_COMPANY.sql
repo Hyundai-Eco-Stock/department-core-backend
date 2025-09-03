@@ -1,3 +1,10 @@
+-- 카드 회사 테이블
+CREATE TABLE CARD_COMPANY
+(
+    CARD_COMPANY_ID NUMBER        NOT NULL,
+    name            VARCHAR2(255) NOT NULL
+);
+
 INSERT INTO card_company (card_company_id, name)
 VALUES (1, '현대백화점 카드');
 

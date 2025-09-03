@@ -1,57 +1,159 @@
 pipeline {
-    agent { label 'built-in' }
+  agent {
+    docker {
+      image 'cimg/openjdk:21.0'
+      args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+    }
+  }
 
-    tools {
-        gradle 'gradle 8.14'
-        jdk 'jdk-21'
+  options {
+    timestamps()
+    timeout(time: 20, unit: 'MINUTES')
+  }
+
+  environment {
+    AWS_REGION = 'ap-northeast-2'
+    IMAGE_TAG = 'latest'
+    CONTAINER_NAME = 'department_store'
+    ECR_REPO = '958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store'
+  }
+
+  stages {
+    stage('Check Conditions') {
+      steps {
+        script {
+          // 브랜치 체크 (deploy 브랜치 아니면 STOP)
+          if (env.GIT_BRANCH != 'origin/main') {
+            error("[SKIP] Not deploy branch → stopping pipeline.")
+          }
+          echo "[INFO] ✅ Valid deploy pipeline (deploy branch push or PR merge). Continuing..."
+        }
+      }
     }
 
-    environment {
-        SERVICE_NAME = 'planet-department-core-backend'
-        HARBOR_URL = 'https://localhost:8443'
-        HARBOR_REPO = 'localhost:8443/planet'
+    stage('Setup') {
+      steps {
+        script {
+          def awsInstalled = sh(
+            script: 'which aws || echo "notfound"',
+            returnStdout: true
+          ).trim()
+
+          if (awsInstalled.contains('notfound')) {
+            echo "[INFO] Installing required packages..."
+            sh '''
+              apt-get update -qq
+              apt-get install -y curl unzip python3 python3-pip awscli
+            '''
+          } else {
+            echo "[INFO] AWS CLI already available, skipping package installation..."
+          }
+        }
+
+        sh '''
+          echo "[INFO] Tool versions:"
+          java -version
+          which docker && docker --version || echo "Docker not available"
+          aws --version
+        '''
+      }
     }
 
-    stages {
-        stage('Check workspace') {
-            steps {
-                sh 'pwd && ls -al'
-            }
-        }
+    stage('Build') {
+      steps {
+        sh '''
+          echo "[INFO] Setting executable permissions..."
+          chmod +x ./gradlew
 
-        stage('Build') {
-            steps {
-		            sh '''
-                ./gradlew build -x test
-                '''
-            }
-        }
+          echo "[INFO] Building with Gradle (skipping tests)..."
+          export GRADLE_USER_HOME=~/.gradle
+          ./gradlew build -x test --no-daemon --build-cache
 
-        stage('Docker Build & Push') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'Harbor_Credentials', usernameVariable: 'HARBOR_USER', passwordVariable: 'HARBOR_PASS')]) {
-                    sh '''
-                    echo "$HARBOR_PASS" | docker login $HARBOR_URL -u "$HARBOR_USER" --password-stdin
-
-                    docker rmi -f $HARBOR_REPO/$SERVICE_NAME:latest || true
-                    docker build -t $HARBOR_REPO/$SERVICE_NAME:latest .
-                    docker push $HARBOR_REPO/$SERVICE_NAME:latest
-                    '''
-                }
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'Harbor_Credentials', usernameVariable: 'HARBOR_USER', passwordVariable: 'HARBOR_PASS')]) {
-                    sh '''
-                    echo "$HARBOR_PASS" | docker login $HARBOR_URL -u "$HARBOR_USER" --password-stdin
-                    docker compose pull $SERVICE_NAME || docker compose pull
-                    docker compose down || true
-                    docker compose up -d --no-deps --force-recreate $SERVICE_NAME
-                    '''
-                }
-            }
-        }
+          echo "[INFO] Build artifacts:"
+          ls -la build/libs/
+        '''
+      }
     }
+
+    stage('Docker Build & Push') {
+      steps {
+        withCredentials([
+          string(credentialsId: 'AWS_ACCESS_KEY', variable: 'AWS_ACCESS_KEY_ID'),
+          string(credentialsId: 'AWS_SECRET_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
+        ]) {
+          sh '''
+            echo "[INFO] Configuring AWS credentials..."
+            aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
+            aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
+            aws configure set default.region "ap-northeast-2"
+
+            echo "[INFO] Logging into Amazon ECR..."
+            aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store
+
+            echo "[INFO] Building Docker image..."
+            docker build -t 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store:latest .
+
+            echo "[INFO] Pushing to ECR..."
+            docker push 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store:latest
+
+            echo "[INFO] ✅ Docker image pushed successfully!"
+          '''
+        }
+      }
+    }
+
+    stage('Deploy to EC2') {
+      steps {
+        withCredentials([
+          string(credentialsId: 'AWS_ACCESS_KEY', variable: 'AWS_ACCESS_KEY_ID'),
+          string(credentialsId: 'AWS_SECRET_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
+        ]) {
+          sh '''
+            echo "[INFO] Finding EC2 instances with tag Deployment=department_store..."
+            INSTANCE_IDS=$(aws ec2 describe-instances \
+              --filters "Name=tag:Deployment,Values=department_store" "Name=instance-state-name,Values=running" \
+              --query "Reservations[].Instances[].InstanceId" --output text)
+
+            if [ -z "$INSTANCE_IDS" ]; then
+              echo "[INFO] ✅ No running instances found with tag Deployment=department_store"
+              exit 0   # 성공으로 종료
+            fi
+
+            echo "[INFO] Deploying to instances: $INSTANCE_IDS"
+
+            echo "[INFO] Sending deployment command via SSM..."
+            aws ssm send-command \
+              --document-name "AWS-RunShellScript" \
+              --comment "Deploy Docker container" \
+              --instance-ids $INSTANCE_IDS \
+              --parameters commands='[
+                "aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store",
+                "docker pull 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store:latest",
+                "docker rm -f department_store || true",
+                "docker run -d --name department_store -p 8080:8080 --restart unless-stopped --env SPRING_PROFILES_ACTIVE=prod --env-file /home/ec2-user/.env 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store:latest",
+                "echo Deployment completed on $(hostname)"
+              ]' \
+              --region ap-northeast-2
+
+            echo "[INFO] ✅ Deployment command sent!"
+          '''
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      echo "🎉 Backend deployment completed successfully!"
+    }
+    failure {
+      echo "❌ Backend deployment failed!"
+    }
+    cleanup {
+      sh '''
+        echo "[INFO] Cleaning up Docker images..."
+        docker system prune -f || true
+      '''
+    }
+  }
 }

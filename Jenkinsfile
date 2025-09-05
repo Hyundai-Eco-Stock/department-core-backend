@@ -130,7 +130,7 @@ pipeline {
                 "aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store",
                 "docker pull 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store:latest",
                 "docker rm -f department_store || true",
-                "docker run -d --name department_store -p 8080:8080 --restart unless-stopped --env SPRING_PROFILES_ACTIVE=prod --env-file /home/ec2-user/.env 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store:latest",
+                "docker run -d --name department_store -p 8081:8081 --restart unless-stopped --env SPRING_PROFILES_ACTIVE=prod --env-file /home/ec2-user/.env 958948421852.dkr.ecr.ap-northeast-2.amazonaws.com/department_store:latest",
                 "echo Deployment completed on $(hostname)"
               ]' \
               --region ap-northeast-2

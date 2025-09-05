@@ -1,6 +1,7 @@
 package org.phoenix.planet.departmentcorebackend.mapper;
 
 import java.util.List;
+import java.util.Optional;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.phoenix.planet.departmentcorebackend.dto.car_access.response.CarAccessHistoryResponse;
@@ -14,4 +15,6 @@ public interface CarAccessMapper {
 
     List<CarAccessHistoryResponse> selectCarAccessHistories();
 
+    Optional<CarAccessHistoryResponse> selectRecentAccessHistory(
+        @Param("carNumber") String carNumber);
 }

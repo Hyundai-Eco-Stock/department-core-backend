@@ -26,8 +26,16 @@ public class CarAccessServiceImpl implements CarAccessService {
     @Override
     @Transactional
     public void processEnterCar(CarEnterRequest carEnterRequest) {
+        // 최근 입차 상태 가져오기
+        CarAccessHistoryResponse carAccessHistory =
+            carAccessMapper.selectRecentAccessHistory(carEnterRequest.carNumber())
+                .orElseThrow(() -> new IllegalArgumentException("차량 번호에 해당하는 입출차 기록이 없습니다."));
+        if (carAccessHistory.status().equals("ENTER")) {
+            throw new IllegalArgumentException("해당 차량은 이미 최근에 입차했습니다.");
+        }
         // DB에 저장
         carAccessMapper.insertEnterCar(carEnterRequest.carNumber());
+
         CarEcoType carEcoType = carTypeSearchService.getTypeByCarNumber(
             carEnterRequest.carNumber());
         // 친환경 차면 이벤트 발행
@@ -41,6 +49,13 @@ public class CarAccessServiceImpl implements CarAccessService {
 
     @Override
     public void processExitCar(CarExitRequest carExitRequest) {
+
+        CarAccessHistoryResponse carAccessHistory =
+            carAccessMapper.selectRecentAccessHistory(carExitRequest.carNumber())
+                .orElseThrow(() -> new IllegalArgumentException("차량 번호에 해당하는 입출차 기록이 없습니다."));
+        if (carAccessHistory.status().equals("EXIT")) {
+            throw new IllegalArgumentException("해당 차량은 이미 최근에 출차했습니다.");
+        }
         // DB에 저장
         carAccessMapper.insertExitCar(carExitRequest.carNumber());
 
